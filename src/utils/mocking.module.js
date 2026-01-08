@@ -2,10 +2,10 @@ import bcrypt from 'bcrypt';
 import { faker } from '@faker-js/faker';
 
 export class MockingModule {
-    // Generar usuarios mock
+   
     static async generateMockUsers(count = 50) {
         const users = [];
-        const hashedPassword = await bcrypt.hash('coder123', 10); // Encriptar una vez
+        const hashedPassword = await bcrypt.hash('coder123', 10); 
 
         for (let i = 0; i < count; i++) {
             const firstName = faker.person.firstName();
@@ -27,7 +27,7 @@ export class MockingModule {
         return users;
     }
 
-    // Generar mascotas mock (ya lo tienes en mockingpets)
+  
     static generateMockPets(count = 50) {
         const pets = [];
         

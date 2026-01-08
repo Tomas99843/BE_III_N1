@@ -122,5 +122,4 @@ export default {
     updatePet,
     deletePet,
     createPetWithImage
-    // 🚫 ELIMINAR: generateMockPets (se movió al router de mocks)
 };

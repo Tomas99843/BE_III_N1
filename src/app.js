@@ -1,8 +1,7 @@
-// 1. CONFIGURACIÓN DE DOTENV - DEBE SER LO PRIMERO
+
 import dotenv from 'dotenv';
 dotenv.config();
 
-// 2. IMPORTACIONES DESPUÉS de dotenv
 import express from 'express';
 import mongoose from 'mongoose';
 import cookieParser from 'cookie-parser';
@@ -18,10 +17,8 @@ import errorHandler from './utils/errorHandler.js';
 
 const app = express();
 
-// 3. USAR LAS VARIABLES DE ENTORNO - IMPORTANTE: usa process.env.MONGODB_URI
 const PORT = process.env.PORT || 8080;
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/adoptme'; // Cambié MONGO_URI por MONGODB_URI
-
+const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/adoptme'; 
 logger.info('Conectando a MongoDB...');
 logger.info(`URI de MongoDB: ${MONGO_URI}`);
 
@@ -37,17 +34,13 @@ mongoose.connect(MONGO_URI)
 app.use(express.json());
 app.use(cookieParser());
 
-// Middleware de logger (debe ir antes de las rutas)
 app.use(loggerMiddleware);
-
-// Rutas principales
 app.use('/api/users', usersRouter);
 app.use('/api/pets', petsRouter);
 app.use('/api/adoptions', adoptionsRouter);
 app.use('/api/sessions', sessionsRouter);
 app.use('/api/mocks', mocksRouter);
 
-// Ruta de prueba del logger
 app.get('/loggerTest', (req, res) => {
     const currentLogger = req.logger || logger;
     

@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 import bcrypt from 'bcrypt';
 
-// Encriptar contraseña fija "coder123"
+
 const encryptPassword = async () => {
     const salt = await bcrypt.genSalt(10);
     return await bcrypt.hash('coder123', salt);
@@ -17,7 +17,7 @@ export async function crearUsuarioFalso() {
         email: faker.internet.email(),
         password: hashedPassword,
         role: roles[Math.floor(Math.random() * roles.length)],
-        pets: [] // Array vacío como pide la consigna
+        pets: [] 
     };
 }
 
