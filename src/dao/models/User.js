@@ -1,139 +1,85 @@
+import mongoose from 'mongoose';
 
-import UserModel from './models/User.js';
+const collection = 'Users';
 
-export default class UsersDAO {
-    constructor() {
-        this.model = UserModel;
-    }
-
-    
-    create = async (userData) => {
-        try {
-            const user = new this.model(userData);
-            return await user.save();
-        } catch (error) {
-            throw error;
+const schema = new mongoose.Schema({
+    first_name: {
+        type: String,
+        required: [true, 'El nombre es requerido'],
+        trim: true,
+        minlength: [2, 'El nombre debe tener al menos 2 caracteres'],
+        maxlength: [50, 'El nombre no puede exceder 50 caracteres']
+    },
+    last_name: {
+        type: String,
+        required: [true, 'El apellido es requerido'],
+        trim: true,
+        minlength: [2, 'El apellido debe tener al menos 2 caracteres'],
+        maxlength: [50, 'El apellido no puede exceder 50 caracteres']
+    },
+    email: {
+        type: String,
+        required: [true, 'El email es requerido'],
+        unique: true,
+        lowercase: true,
+        trim: true,
+        match: [/^\S+@\S+\.\S+$/, 'Por favor ingresa un email válido']
+    },
+    password: {
+        type: String,
+        required: [true, 'La contraseña es requerida'],
+        select: false
+    },
+    role: {
+        type: String,
+        enum: ['user', 'admin', 'premium'],
+        default: 'user'
+    },
+    pets: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Pets'
+    }],
+    documents: [{
+        name: {
+            type: String,
+            required: [true, 'El nombre del documento es requerido']
+        },
+        reference: {
+            type: String,
+            required: [true, 'La referencia del documento es requerida']
+        },
+        uploadedAt: {
+            type: Date,
+            default: Date.now
         }
+    }],
+    last_connection: {
+        type: Date,
+        default: Date.now
+    },
+    failedLoginAttempts: {
+        type: Number,
+        default: 0,
+        select: false
+    },
+    lockUntil: {
+        type: Date,
+        select: false
     }
+}, {
+    timestamps: true
+});
 
-    D
-    get = async (id) => {
-        try {
-            return await this.model.findById(id)
-                .select('-password -failedLoginAttempts -lockUntil -__v')
-                .populate('pets._id', 'name specie age');
-        } catch (error) {
-            throw error;
-        }
-    }
+// Índices
+schema.index({ email: 1 }, { unique: true });
+schema.index({ role: 1 });
+schema.index({ 'documents.name': 1 });
 
-    
-    getBy = async (query) => {
-        try {
-            return await this.model.findOne(query)
-                .select('-password -failedLoginAttempts -lockUntil -__v');
-        } catch (error) {
-            throw error;
-        }
-    }
+// Método virtual para nombre completo
+schema.virtual('full_name').get(function() {
+    return `${this.first_name} ${this.last_name}`;
+});
 
-    
-    getAll = async (query = {}, options = {}) => {
-        try {
-            const { skip = 0, limit = 10, sort = { createdAt: -1 } } = options;
-            
-            return await this.model.find(query)
-                .select('-password -failedLoginAttempts -lockUntil -__v')
-                .skip(skip)
-                .limit(limit)
-                .sort(sort);
-        } catch (error) {
-            throw error;
-        }
-    }
+const userModel = mongoose.model(collection, schema);
 
-    
-    update = async (id, updateData) => {
-        try {
-            return await this.model.findByIdAndUpdate(
-                id,
-                updateData,
-                { new: true, runValidators: true }
-            ).select('-password -failedLoginAttempts -lockUntil -__v');
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    
-    delete = async (id) => {
-        try {
-            return await this.model.findByIdAndDelete(id);
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    
-    deleteMany = async (query) => {
-        try {
-            return await this.model.deleteMany(query);
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    
-    count = async (query = {}) => {
-        try {
-            return await this.model.countDocuments(query);
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    
-    aggregate = async (pipeline) => {
-        try {
-            return await this.model.aggregate(pipeline);
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    
-    getWithPassword = async (email) => {
-        try {
-            return await this.model.findOne({ email })
-                .select('+password +failedLoginAttempts +lockUntil');
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    
-    addDocument = async (userId, document) => {
-        try {
-            return await this.model.findByIdAndUpdate(
-                userId,
-                { $push: { documents: document } },
-                { new: true, runValidators: true }
-            ).select('documents');
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    
-    updateLastConnection = async (userId) => {
-        try {
-            return await this.model.findByIdAndUpdate(
-                userId,
-                { last_connection: new Date() },
-                { new: true }
-            );
-        } catch (error) {
-            throw error;
-        }
-    }
-}
+export default userModel;
