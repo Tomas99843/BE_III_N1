@@ -1,8 +1,8 @@
-// src/routes/adoption.router.js - ARCHIVO COMPLETO MODIFICADO
 import { Router } from 'express';
 import adoptionsController from '../controllers/adoptions.controller.js';
-import { authenticate, authorize } from '../controllers/sessions.controller.js';
+import sessionsController from '../controllers/sessions.controller.js';
 
+const { authenticate, authorize } = sessionsController;
 const router = Router();
 
 // Aplicar autenticación a todas las rutas de adopciones
