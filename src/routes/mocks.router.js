@@ -1,15 +1,16 @@
 import express from 'express';
-import { generarMascotasMock } from '../utils/mocking.js';
-import { generarUsuariosMock } from '../utils/userMocking.js';
+import MockGenerator from '../utils/MockGenerator.js';
 import User from '../dao/models/User.js';
 import Pet from '../dao/models/Pet.js';
 
 const router = express.Router();
+const mockGenerator = new MockGenerator();
 
+// Endpoint GET /api/mocks/mockingpets
 router.get('/mockingpets', (req, res) => {
     try {
         const count = parseInt(req.query.count) || 50;
-        const mockPets = generarMascotasMock(count);
+        const mockPets = mockGenerator.generateMockPets(count);
         
         res.json({
             status: 'success',
@@ -25,10 +26,11 @@ router.get('/mockingpets', (req, res) => {
     }
 });
 
+// Endpoint GET /api/mocks/mockingusers
 router.get('/mockingusers', async (req, res) => {
     try {
         const count = parseInt(req.query.count) || 50;
-        const mockUsers = await generarUsuariosMock(count);
+        const mockUsers = await mockGenerator.generateMockUsers(count);
         
         res.json({
             status: 'success',
@@ -44,6 +46,7 @@ router.get('/mockingusers', async (req, res) => {
     }
 });
 
+// Endpoint POST /api/mocks/generateData
 router.post('/generateData', async (req, res) => {
     try {
         const { users = 0, pets = 0 } = req.body;
@@ -60,16 +63,20 @@ router.post('/generateData', async (req, res) => {
             pets: { inserted: 0, data: [] }
         };
 
-        if (users > 0) {
-            const mockUsers = await generarUsuariosMock(users);
-            const insertedUsers = await User.insertMany(mockUsers);
+        // Usar el MockGenerator para crear los datos
+        const mockData = await mockGenerator.generateMockData(
+            users > 0 ? users : 0,
+            pets > 0 ? pets : 0
+        );
+
+        if (users > 0 && mockData.users.length > 0) {
+            const insertedUsers = await User.insertMany(mockData.users);
             results.users.inserted = insertedUsers.length;
             results.users.data = insertedUsers;
         }
 
-        if (pets > 0) {
-            const mockPets = generarMascotasMock(pets);
-            const insertedPets = await Pet.insertMany(mockPets);
+        if (pets > 0 && mockData.pets.length > 0) {
+            const insertedPets = await Pet.insertMany(mockData.pets);
             results.pets.inserted = insertedPets.length;
             results.pets.data = insertedPets;
         }
@@ -87,22 +94,6 @@ router.post('/generateData', async (req, res) => {
         res.status(500).json({
             status: 'error',
             message: 'Error insertando datos mock: ' + error.message
-        });
-    }
-});
-
-
-router.delete('/cleanMockData', async (req, res) => {
-    try {
-
-        res.json({
-            status: 'success',
-            message: 'Datos mock eliminados (implementación pendiente)'
-        });
-    } catch (error) {
-        res.status(500).json({
-            status: 'error',
-            message: 'Error limpiando datos: ' + error.message
         });
     }
 });

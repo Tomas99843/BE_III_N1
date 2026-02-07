@@ -21,7 +21,20 @@ import errorHandler from './utils/errorHandler.js';
 const app = express();
 
 const PORT = process.env.PORT || 8080;
-const MONGO_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/adoptme'; 
+
+// CORREGIDO: Usa MONGODB_URL para Railway
+const MONGO_URI = process.env.MONGODB_URL || process.env.MONGO_URL || 'mongodb://localhost:27017/adoptme';
+
+// AÑADIDO: Debug para verificar variable
+logger.info('🔍 Verificando variables de entorno...');
+logger.info(`🔍 MONGODB_URL presente: ${process.env.MONGODB_URL ? 'SÍ' : 'NO'}`);
+logger.info(`🔍 MONGO_URL presente: ${process.env.MONGO_URL ? 'SÍ' : 'NO'}`);
+
+if (process.env.MONGODB_URL) {
+    // Mostrar solo los primeros 30 caracteres por seguridad
+    const maskedURL = process.env.MONGODB_URL.substring(0, 30) + '...';
+    logger.info(`🔍 MONGODB_URL inicia con: ${maskedURL}`);
+}
 
 // Configuración de seguridad
 app.use(helmet({
@@ -56,15 +69,32 @@ const limiter = rateLimit({
 app.use('/api/', limiter);
 
 logger.info('Conectando a MongoDB...');
-logger.info(`URI de MongoDB: ${MONGO_URI}`);
+logger.info(`URI de MongoDB configurada: ${MONGO_URI ? 'SÍ' : 'NO'}`);
 
-mongoose.connect(MONGO_URI)
+// AÑADIDO: Mejor configuración de conexión para Railway
+mongoose.connect(MONGO_URI, {
+    serverSelectionTimeoutMS: 10000, // 10 segundos timeout
+    connectTimeoutMS: 15000,
+    socketTimeoutMS: 45000,
+    retryWrites: true,
+    w: 'majority'
+})
     .then(() => {
         logger.info('✅ Conectado a MongoDB exitosamente');
+        logger.info(`✅ Base de datos: ${mongoose.connection.db?.databaseName || 'N/A'}`);
     })
     .catch(err => {
         logger.error(`❌ Error conectando a MongoDB: ${err.message}`);
         logger.warning('⚠️  El servidor continuará sin conexión a base de datos');
+        
+        // Debug adicional
+        if (err.message.includes('ENOTFOUND')) {
+            logger.error('🔍 Error DNS - Revisa la URL de MongoDB');
+        } else if (err.message.includes('ECONNREFUSED')) {
+            logger.error('🔍 Conexión rechazada - ¿MongoDB está activo?');
+        } else if (err.message.includes('authentication')) {
+            logger.error('🔍 Error de autenticación - Revisa usuario/contraseña');
+        }
     });
 
 app.use(express.json());
@@ -94,12 +124,15 @@ app.use('/api/mocks', mocksRouter);
 // Ruta de health check (para Docker y monitoreo)
 app.get('/health', (req, res) => {
     const healthStatus = {
-        status: 'OK',
+        status: mongoose.connection.readyState === 1 ? 'OK' : 'DEGRADED',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-        memory: process.memoryUsage(),
-        environment: process.env.NODE_ENV
+        databaseState: mongoose.connection.readyState,
+        environment: process.env.NODE_ENV || 'development',
+        port: PORT,
+        mongoURLConfigured: !!MONGO_URI,
+        railway: process.env.RAILWAY_ENVIRONMENT ? true : false
     };
     
     const statusCode = mongoose.connection.readyState === 1 ? 200 : 503;
@@ -143,10 +176,14 @@ app.use('*', (req, res) => {
     });
 });
 
-app.listen(PORT, () => {
+// AÑADIDO: Escuchar en 0.0.0.0 para Railway
+app.listen(PORT, '0.0.0.0', () => {
     logger.info(`🚀 Servidor escuchando en puerto ${PORT}`);
-    logger.info(`📚 Documentación disponible en: http://localhost:${PORT}/api-docs`);
-    logger.info(`🏥 Health check en: http://localhost:${PORT}/health`);
+    logger.info(`📚 Documentación disponible en: http://0.0.0.0:${PORT}/api-docs`);
+    logger.info(`🏥 Health check en: http://0.0.0.0:${PORT}/health`);
+    logger.info(`🔧 Entorno: ${process.env.NODE_ENV || 'development'}`);
+    logger.info(`🔧 Railway: ${process.env.RAILWAY_ENVIRONMENT ? 'SÍ' : 'NO'}`);
+    
     if (process.env.NODE_ENV === 'development') {
         logger.info(`🔧 Logger test en: http://localhost:${PORT}/loggerTest`);
     }

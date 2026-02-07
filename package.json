@@ -69,13 +69,5 @@
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=8.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/tu-usuario/adoptme-api.git"
-  },
-  "bugs": {
-    "url": "https://github.com/tu-usuario/adoptme-api/issues"
-  },
-  "homepage": "https://github.com/tu-usuario/adoptme-api#readme"
+  }
 }
