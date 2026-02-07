@@ -1,4 +1,4 @@
-import userModel from "./models/User.js";
+import userModel from "../models/User.js";
 import logger from '../utils/logger.js';
 
 export default class Users {
@@ -7,7 +7,7 @@ export default class Users {
         try {
             const query = userModel.find(params);
             
-            
+            // Aplicar paginación si se especifica
             if (options.page && options.limit) {
                 const page = parseInt(options.page, 10) || 1;
                 const limit = parseInt(options.limit, 10) || 10;
