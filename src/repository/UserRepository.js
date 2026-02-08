@@ -65,12 +65,15 @@ export default class UserRepository {
 
     updateLoginAttempts = async (userId, attempts) => {
         try {
-            let updateData = { failedLoginAttempts: attempts };
+            // Asegurar que attempts sea un número válido - CORRECCIÓN CRÍTICA
+            const attemptsNumber = parseInt(attempts) || 0;
             
-            if (attempts >= 5) {
+            let updateData = { failedLoginAttempts: attemptsNumber };
+            
+            if (attemptsNumber >= 5) {
                 // Bloquear por 1 hora si tiene 5 o más intentos fallidos
                 updateData.lockUntil = new Date(Date.now() + 60 * 60 * 1000);
-            } else if (attempts === 0) {
+            } else if (attemptsNumber === 0) {
                 // Resetear bloqueo si intentos son 0
                 updateData.$unset = { lockUntil: 1 };
             }
