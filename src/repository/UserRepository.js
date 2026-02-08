@@ -1,4 +1,3 @@
-// src/repository/UserRepository.js - ARCHIVO COMPLETO MODIFICADO
 import UserDTO from '../dto/User.dto.js';
 
 export default class UserRepository {
@@ -6,9 +5,9 @@ export default class UserRepository {
         this.dao = dao;
     }
 
-    // Métodos existentes
+    // Métodos existentes - CORREGIDO: dao.save en lugar de dao.create
     create = async (user) => {
-        return await this.dao.create(user);
+        return await this.dao.save(user);
     }
 
     get = async (id) => {
