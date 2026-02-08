@@ -201,6 +201,9 @@ app.listen(PORT, '0.0.0.0', () => {
     }
 });
 
+// Exportar la app para testing
+export default app;
+
 // Manejo de errores no capturados
 process.on('uncaughtException', (error) => {
     logger.fatal(`🚨 Excepción no capturada: ${error.message}`, error);
