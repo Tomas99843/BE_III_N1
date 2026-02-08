@@ -30,7 +30,23 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
         
         console.log('✅ MongoDB en memoria iniciado para tests de adopción');
         
-        // 3. IMPORTAR app DESPUÉS de configurar mongoose
+        // 3. IMPORTAR Y REGISTRAR MODELOS MANUALMENTE
+        const UserModule = await import('../src/dao/models/User.js');
+        const PetModule = await import('../src/dao/models/Pet.js');
+        const AdoptionModule = await import('../src/dao/models/Adoption.js');
+        
+        // Registrar modelos si no están registrados
+        if (!mongoose.models.User) {
+            mongoose.model('User', UserModule.default.schema);
+        }
+        if (!mongoose.models.Pet) {
+            mongoose.model('Pet', PetModule.default.schema);
+        }
+        if (!mongoose.models.Adoption) {
+            mongoose.model('Adoption', AdoptionModule.default.schema);
+        }
+        
+        // 4. Importar app DESPUÉS de configurar mongoose y modelos
         const appModule = await import('../src/app.js');
         app = appModule.default;
         
