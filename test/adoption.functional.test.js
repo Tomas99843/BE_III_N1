@@ -3,7 +3,8 @@ import request from 'supertest';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-import app from '../src/app.js';
+// Importar app dinámicamente después de configurar MongoDB
+let app;
 
 describe('Adoption API - Functional Tests (COMPLETE)', () => {
     let mongoServer;
@@ -15,33 +16,48 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
     let userToken;
 
     before(async () => {
-        
+        // 1. Iniciar MongoDB en memoria
         mongoServer = await MongoMemoryServer.create();
         const mongoUri = mongoServer.getUri();
         
-        await mongoose.connect(mongoUri, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        });
+        // 2. Conectar mongoose solo si no está conectado (evitar múltiples conexiones)
+        if (mongoose.connection.readyState === 0) {
+            await mongoose.connect(mongoUri, {
+                useNewUrlParser: true,
+                useUnifiedTopology: true,
+            });
+        }
         
         console.log('✅ MongoDB en memoria iniciado para tests de adopción');
+        
+        // 3. IMPORTAR app DESPUÉS de configurar mongoose
+        const appModule = await import('../src/app.js');
+        app = appModule.default;
+        
         agent = request.agent(app);
     });
 
     after(async () => {
-        await mongoose.disconnect();
-        await mongoServer.stop();
+        // Desconectar mongoose y detener MongoDB en memoria
+        if (mongoose.connection.readyState !== 0) {
+            await mongoose.disconnect();
+        }
+        
+        if (mongoServer) {
+            await mongoServer.stop();
+        }
+        
         console.log('✅ MongoDB en memoria detenido');
     });
 
     beforeEach(async () => {
-        
-        const collections = await mongoose.connection.db.collections();
-        for (let collection of collections) {
-            await collection.deleteMany({});
+        // Limpiar todas las colecciones antes de cada test
+        const collections = mongoose.connection.collections;
+        for (const key in collections) {
+            await collections[key].deleteMany({});
         }
 
-        
+        // Crear usuario de prueba
         const userResponse = await agent
             .post('/api/sessions/register')
             .send({
@@ -55,7 +71,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
         testUserId = userResponse.body.user.id;
         userToken = userResponse.headers['set-cookie'];
 
-        
+        // Crear usuario admin
         const adminResponse = await agent
             .post('/api/sessions/register')
             .send({
@@ -66,14 +82,14 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
             })
             .expect(200);
 
-        
+        // Asignar rol admin
         const User = mongoose.model('User');
         await User.findOneAndUpdate(
             { email: 'admin@test.com' },
             { role: 'admin' }
         );
 
-        
+        // Login como admin
         await agent
             .post('/api/sessions/login')
             .send({
@@ -84,7 +100,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
 
         adminToken = userResponse.headers['set-cookie'];
 
-        
+        // Crear mascota de prueba
         const Pet = mongoose.model('Pet');
         const testPet = new Pet({
             name: 'Firulais',
@@ -113,7 +129,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
         });
 
         it('should filter adoptions by status', async () => {
-            
+            // Crear una adopción de prueba
             const Adoption = mongoose.model('Adoption');
             const adoption = new Adoption({
                 owner: testUserId,
@@ -140,7 +156,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
 
     describe('GET /api/adoptions/:aid', () => {
         it('should get a specific adoption by ID (status 200)', async () => {
-            
+            // Crear una adopción de prueba
             const Adoption = mongoose.model('Adoption');
             const adoption = new Adoption({
                 owner: testUserId,
@@ -195,7 +211,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
         });
 
         it('should fail when pet is already adopted (status 400)', async () => {
-            
+            // Marcar mascota como adoptada
             const Pet = mongoose.model('Pet');
             await Pet.findByIdAndUpdate(testPetId, { adopted: true, status: 'adopted' });
 
@@ -215,10 +231,9 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
         });
     });
 
-    
     describe('PUT /api/adoptions/:aid', () => {
         beforeEach(async () => {
-            
+            // Crear una adopción de prueba antes de cada test
             const Adoption = mongoose.model('Adoption');
             const adoption = new Adoption({
                 owner: testUserId,
@@ -231,7 +246,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
         });
 
         it('should update adoption status (admin only) - status 200', async () => {
-            
+            // Login como admin
             await agent
                 .post('/api/sessions/login')
                 .send({
@@ -288,7 +303,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
 
     describe('DELETE /api/adoptions/:aid', () => {
         beforeEach(async () => {
-            
+            // Crear una adopción de prueba antes de cada test
             const Adoption = mongoose.model('Adoption');
             const adoption = new Adoption({
                 owner: testUserId,
@@ -300,7 +315,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
         });
 
         it('should delete adoption (admin only) - status 200', async () => {
-            
+            // Login como admin
             await agent
                 .post('/api/sessions/login')
                 .send({
@@ -328,7 +343,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
         it('should return 404 for non-existent adoption ID', async () => {
             const nonExistentId = new mongoose.Types.ObjectId();
             
-            
+            // Login como admin
             await agent
                 .post('/api/sessions/login')
                 .send({
@@ -345,7 +360,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
 
     describe('GET /api/adoptions/user/:uid', () => {
         it('should get adoptions for specific user (status 200)', async () => {
-            
+            // Crear una adopción de prueba
             const Adoption = mongoose.model('Adoption');
             const adoption = new Adoption({
                 owner: testUserId,
@@ -366,7 +381,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
         });
 
         it('should filter user adoptions by status', async () => {
-            
+            // Crear múltiples adopciones
             const Adoption = mongoose.model('Adoption');
             await Adoption.create([
                 { owner: testUserId, pet: new mongoose.Types.ObjectId(), status: 'pending' },
@@ -392,7 +407,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
         });
 
         it('should allow admin to see any user adoptions', async () => {
-            
+            // Login como admin
             await agent
                 .post('/api/sessions/login')
                 .send({
@@ -411,7 +426,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
 
     describe('Adoption Complete Flow Test', () => {
         it('should complete full adoption workflow', async () => {
-            
+            // 1. Crear adopción
             const createResponse = await agent
                 .post(`/api/adoptions/user/${testUserId}/pet/${testPetId}`)
                 .set('Cookie', userToken)
@@ -419,7 +434,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
 
             const adoptionId = createResponse.body.data._id;
 
-            
+            // 2. Obtener todas las adopciones
             const getAllResponse = await agent
                 .get('/api/adoptions')
                 .set('Cookie', userToken)
@@ -427,7 +442,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
             
             expect(getAllResponse.body.data).to.have.lengthOf(1);
 
-            
+            // 3. Obtener adopción específica
             const getOneResponse = await agent
                 .get(`/api/adoptions/${adoptionId}`)
                 .set('Cookie', userToken)
@@ -435,7 +450,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
             
             expect(getOneResponse.body.data._id).to.equal(adoptionId);
 
-            
+            // 4. Obtener adopciones del usuario
             const getUserResponse = await agent
                 .get(`/api/adoptions/user/${testUserId}`)
                 .set('Cookie', userToken)
@@ -443,7 +458,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
             
             expect(getUserResponse.body.data).to.have.lengthOf(1);
 
-            
+            // 5. Login como admin
             await agent
                 .post('/api/sessions/login')
                 .send({
@@ -452,7 +467,7 @@ describe('Adoption API - Functional Tests (COMPLETE)', () => {
                 })
                 .expect(200);
 
-            
+            // 6. Aprobar adopción
             const updateResponse = await agent
                 .put(`/api/adoptions/${adoptionId}`)
                 .send({ status: 'approved' })
