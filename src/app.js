@@ -68,17 +68,19 @@ const limiter = rateLimit({
 // Aplicar rate limiting a todas las rutas de API
 app.use('/api/', limiter);
 
-logger.info('Conectando a MongoDB...');
-logger.info(`URI de MongoDB configurada: ${MONGO_URI ? 'SÍ' : 'NO'}`);
+// AÑADIDO: CONEXIÓN CONDICIONAL - NO conectar en modo TEST
+if (process.env.NODE_ENV !== 'test') {
+    logger.info('Conectando a MongoDB...');
+    logger.info(`URI de MongoDB configurada: ${MONGO_URI ? 'SÍ' : 'NO'}`);
 
-// AÑADIDO: Mejor configuración de conexión para Railway con timeout más corto
-mongoose.connect(MONGO_URI, {
-    serverSelectionTimeoutMS: 5000, // REDUCIDO: 5 segundos timeout
-    connectTimeoutMS: 10000,
-    socketTimeoutMS: 30000,
-    retryWrites: true,
-    w: 'majority'
-})
+    // AÑADIDO: Mejor configuración de conexión para Railway con timeout más corto
+    mongoose.connect(MONGO_URI, {
+        serverSelectionTimeoutMS: 5000, // REDUCIDO: 5 segundos timeout
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 30000,
+        retryWrites: true,
+        w: 'majority'
+    })
     .then(() => {
         logger.info('✅ Conectado a MongoDB exitosamente');
         logger.info(`✅ Base de datos: ${mongoose.connection.db?.databaseName || 'N/A'}`);
@@ -99,6 +101,9 @@ mongoose.connect(MONGO_URI, {
         // IMPORTANTE: No fallar la aplicación si MongoDB no está disponible
         // La aplicación puede funcionar en modo degradado
     });
+} else {
+    logger.info('🟡 Modo TEST - Saltando conexión a MongoDB');
+}
 
 app.use(express.json());
 app.use(cookieParser(process.env.SESSION_SECRET));
