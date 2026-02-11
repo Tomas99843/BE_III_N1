@@ -38,7 +38,7 @@ const getAdoption = async(req, res) => {
     try {
         const adoptionId = req.params.aid;
         
-        
+        // Validar ID
         if (!adoptionId.match(/^[0-9a-fA-F]{24}$/)) {
             return res.status(400).json({
                 status: "error",
@@ -54,15 +54,21 @@ const getAdoption = async(req, res) => {
             });
         }
         
-        
+        // Verificar permisos - CORREGIDO
         const userId = req.user?.id;
         const isAdmin = req.user?.role === 'admin';
-        const isOwner = adoption.owner.toString() === userId;
         
+        // CORRECCIÓN CRÍTICA: owner es un objeto, obtener su _id
+        const isOwner = adoption.owner._id.toString() === userId;
         
+        // Verificar si es dueño de la mascota
         let isPetOwner = false;
         if (adoption.pet?.owner) {
-            isPetOwner = adoption.pet.owner.toString() === userId;
+            // pet.owner podría ser string u objeto
+            const petOwnerId = adoption.pet.owner._id 
+                ? adoption.pet.owner._id.toString() 
+                : adoption.pet.owner.toString();
+            isPetOwner = petOwnerId === userId;
         }
         
         if (!isAdmin && !isOwner && !isPetOwner) {
@@ -85,13 +91,12 @@ const getAdoption = async(req, res) => {
     }
 };
 
-
 const updateAdoption = async(req, res) => {
     try {
         const adoptionId = req.params.aid;
         const updateData = req.body;
         
-        
+        // Validar ID
         if (!adoptionId.match(/^[0-9a-fA-F]{24}$/)) {
             return res.status(400).json({
                 status: "error",
@@ -99,7 +104,7 @@ const updateAdoption = async(req, res) => {
             });
         }
         
-        
+        // Validar campos permitidos
         const allowedFields = ['status', 'notes', 'adoptionFee'];
         const invalidFields = Object.keys(updateData).filter(
             field => !allowedFields.includes(field)
@@ -112,7 +117,7 @@ const updateAdoption = async(req, res) => {
             });
         }
         
-        
+        // Validar estado
         if (updateData.status && !['pending', 'approved', 'rejected', 'completed'].includes(updateData.status)) {
             return res.status(400).json({
                 status: "error",
@@ -128,10 +133,12 @@ const updateAdoption = async(req, res) => {
             });
         }
         
-        
+        // Verificar permisos - CORREGIDO
         const userId = req.user?.id;
         const isAdmin = req.user?.role === 'admin';
-        const isOwner = adoption.owner.toString() === userId;
+        
+        // CORRECCIÓN CRÍTICA: owner es un objeto
+        const isOwner = adoption.owner._id.toString() === userId;
         
         if (!isAdmin && !isOwner) {
             return res.status(403).json({
@@ -139,7 +146,6 @@ const updateAdoption = async(req, res) => {
                 error: "No autorizado para actualizar esta adopción"
             });
         }
-        
         
         if ((updateData.status === 'approved' || updateData.status === 'rejected') && !isAdmin) {
             return res.status(403).json({
@@ -151,7 +157,6 @@ const updateAdoption = async(req, res) => {
         const result = await adoptionsService.update(adoptionId, updateData);
         
         req.logger.info(`Adopción actualizada: ${adoptionId} por usuario: ${userId}`);
-        
         
         if (updateData.status === 'approved') {
             await petsService.adoptPet(adoption.pet._id, adoption.owner._id);
@@ -174,12 +179,9 @@ const updateAdoption = async(req, res) => {
         });
     }
 };
-
-
 const deleteAdoption = async(req, res) => {
     try {
         const adoptionId = req.params.aid;
-        
         
         if (!adoptionId.match(/^[0-9a-fA-F]{24}$/)) {
             return res.status(400).json({
@@ -196,14 +198,12 @@ const deleteAdoption = async(req, res) => {
             });
         }
         
-        
         if (req.user?.role !== 'admin') {
             return res.status(403).json({
                 status: "error",
                 error: "Solo administradores pueden eliminar adopciones"
             });
         }
-        
         
         if (!['pending', 'rejected'].includes(adoption.status)) {
             return res.status(400).json({
@@ -235,14 +235,12 @@ const createAdoption = async(req, res) => {
     try {
         const {uid, pid} = req.params;
         
-        
         if (!uid.match(/^[0-9a-fA-F]{24}$/) || !pid.match(/^[0-9a-fA-F]{24}$/)) {
             return res.status(400).json({
                 status: "error", 
                 error: "IDs inválidos"
             });
         }
-        
         
         if (req.user?.id !== uid) {
             return res.status(403).json({
@@ -274,7 +272,6 @@ const createAdoption = async(req, res) => {
             });
         }
         
-        
         const existingAdoption = await adoptionsService.isPetInAdoptionProcess(pid);
         if (existingAdoption) {
             return res.status(409).json({
@@ -282,7 +279,6 @@ const createAdoption = async(req, res) => {
                 error: "Esta mascota ya está en proceso de adopción"
             });
         }
-        
         
         const adoption = await adoptionsService.createAdoptionRequest(uid, pid);
         
@@ -311,11 +307,9 @@ const createAdoption = async(req, res) => {
     }
 };
 
-
 const getUserAdoptions = async(req, res) => {
     try {
         const userId = req.params.uid;
-        
         
         if (!userId.match(/^[0-9a-fA-F]{24}$/)) {
             return res.status(400).json({
@@ -331,7 +325,6 @@ const getUserAdoptions = async(req, res) => {
                 error: "Usuario no encontrado"
             });
         }
-        
         
         const requestingUserId = req.user?.id;
         if (requestingUserId !== userId && req.user?.role !== 'admin') {
@@ -367,12 +360,10 @@ const getUserAdoptions = async(req, res) => {
     }
 };
 
-
 const approveAdoption = async (req, res) => {
     try {
         const adoptionId = req.params.aid;
         const { notes } = req.body;
-        
         
         if (!adoptionId.match(/^[0-9a-fA-F]{24}$/)) {
             return res.status(400).json({
@@ -380,7 +371,6 @@ const approveAdoption = async (req, res) => {
                 error: "ID de adopción inválido"
             });
         }
-        
         
         if (req.user?.role !== 'admin') {
             return res.status(403).json({
@@ -397,12 +387,9 @@ const approveAdoption = async (req, res) => {
             });
         }
         
-        
         const approvedAdoption = await adoptionsService.approveAdoption(adoptionId, notes);
         
-        
         await petsService.adoptPet(adoption.pet._id, adoption.owner._id);
-        
         
         await usersService.update(adoption.owner._id, {
             $push: { pets: { _id: adoption.pet._id } }
@@ -425,12 +412,10 @@ const approveAdoption = async (req, res) => {
     }
 };
 
-
 const rejectAdoption = async (req, res) => {
     try {
         const adoptionId = req.params.aid;
         const { notes } = req.body;
-        
         
         if (!adoptionId.match(/^[0-9a-fA-F]{24}$/)) {
             return res.status(400).json({
@@ -438,7 +423,6 @@ const rejectAdoption = async (req, res) => {
                 error: "ID de adopción inválido"
             });
         }
-        
         
         if (req.user?.role !== 'admin') {
             return res.status(403).json({
@@ -454,7 +438,6 @@ const rejectAdoption = async (req, res) => {
                 error: "Adopción no encontrada"
             });
         }
-        
         
         const rejectedAdoption = await adoptionsService.rejectAdoption(adoptionId, notes);
         
@@ -474,7 +457,6 @@ const rejectAdoption = async (req, res) => {
         });
     }
 };
-
 
 const getMyAdoptions = async (req, res) => {
     try {
@@ -505,12 +487,10 @@ const getMyAdoptions = async (req, res) => {
     }
 };
 
-
 const cancelAdoption = async (req, res) => {
     try {
         const adoptionId = req.params.aid;
         const { notes } = req.body;
-        
         
         if (!adoptionId.match(/^[0-9a-fA-F]{24}$/)) {
             return res.status(400).json({
@@ -526,10 +506,8 @@ const cancelAdoption = async (req, res) => {
                 error: "Adopción no encontrada"
             });
         }
-        
-        
         const userId = req.user?.id;
-        const isOwner = adoption.owner.toString() === userId;
+        const isOwner = adoption.owner._id.toString() === userId;
         const isAdmin = req.user?.role === 'admin';
         
         if (!isOwner && !isAdmin) {
@@ -539,14 +517,12 @@ const cancelAdoption = async (req, res) => {
             });
         }
         
-        
         if (adoption.status !== 'pending') {
             return res.status(400).json({
                 status: "error",
                 error: `No se puede cancelar una adopción con estado: ${adoption.status}`
             });
         }
-        
         
         const cancelledAdoption = await adoptionsService.cancelAdoption(adoptionId, notes);
         

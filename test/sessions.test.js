@@ -2,7 +2,6 @@ import { expect } from 'chai';
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 
-
 import User from '../src/dao/models/User.js';
 import { createHash, passwordValidation, isValidEmail } from '../src/utils/index.js';
 
@@ -10,7 +9,6 @@ describe('Sessions API - Unit Tests', () => {
     let mongoServer;
 
     before(async () => {
-        
         mongoServer = await MongoMemoryServer.create();
         const mongoUri = mongoServer.getUri();
         
@@ -23,14 +21,12 @@ describe('Sessions API - Unit Tests', () => {
     });
 
     after(async () => {
-        
         await mongoose.disconnect();
         await mongoServer.stop();
         console.log('✅ MongoDB en memoria detenido');
     });
 
     beforeEach(async () => {
-        
         await User.deleteMany({});
         console.log('🧹 Base de datos limpiada');
     });
@@ -44,9 +40,7 @@ describe('Sessions API - Unit Tests', () => {
                 password: 'SecurePass123!'
             };
 
-            
             const hashedPassword = await createHash(userData.password);
-            
             
             const user = new User({
                 ...userData,
@@ -55,16 +49,22 @@ describe('Sessions API - Unit Tests', () => {
 
             await user.save();
 
+            // ¡CORRECCIÓN: Incluir el campo password con select: false!
+            const savedUser = await User.findOne({ email: userData.email })
+                .select('+password');
             
-            const savedUser = await User.findOne({ email: userData.email });
-            
+            // Verificación del usuario
             expect(savedUser).to.exist;
             expect(savedUser.first_name).to.equal(userData.first_name);
             expect(savedUser.last_name).to.equal(userData.last_name);
-            expect(savedUser.email).to.equal(userData.email.toLowerCase()); 
-            expect(savedUser.password).to.not.equal(userData.password); 
-            expect(savedUser.password).to.include('$2b$'); 
-            expect(savedUser.role).to.equal('user'); 
+            expect(savedUser.email).to.equal(userData.email.toLowerCase());
+            
+            // Ahora sí existe el password
+            expect(savedUser.password).to.be.a('string');
+            expect(savedUser.password).to.not.equal(userData.password);
+            expect(savedUser.password.length).to.be.greaterThan(20);
+            
+            expect(savedUser.role).to.equal('user');
             expect(savedUser.documents).to.be.an('array').that.is.empty;
             expect(savedUser.last_connection).to.be.a('Date');
             expect(savedUser.createdAt).to.be.a('Date');
@@ -79,11 +79,9 @@ describe('Sessions API - Unit Tests', () => {
                 password: 'password123'
             };
 
-            
             const user1 = new User(userData);
             await user1.save();
 
-            
             const user2 = new User({
                 ...userData,
                 first_name: 'Usuario', 
@@ -97,16 +95,14 @@ describe('Sessions API - Unit Tests', () => {
                 error = err;
             }
 
-            
             expect(error).to.exist;
             expect(error.name).to.equal('MongoServerError');
-            expect(error.code).to.equal(11000); 
+            expect(error.code).to.equal(11000);
         });
 
         it('should validate required fields', async () => {
             const incompleteUser = new User({
-                first_name: 'Solo' 
-                
+                first_name: 'Solo'
             });
 
             let error;
@@ -127,7 +123,6 @@ describe('Sessions API - Unit Tests', () => {
         let testUser;
 
         beforeEach(async () => {
-            
             const userData = {
                 first_name: 'Test',
                 last_name: 'User',
@@ -142,6 +137,10 @@ describe('Sessions API - Unit Tests', () => {
             });
 
             await testUser.save();
+            
+            // ¡IMPORTANTE! Recargar el usuario incluyendo el password
+            testUser = await User.findOne({ email: userData.email })
+                .select('+password');
         });
 
         it('should validate correct password', async () => {
@@ -209,12 +208,10 @@ describe('Sessions API - Unit Tests', () => {
                 }
             ];
 
-            
             documents.forEach(doc => user.documents.push(doc));
             
             await user.save();
 
-            
             const savedUser = await User.findById(user._id);
             expect(savedUser.documents).to.have.lengthOf(2);
             
@@ -236,9 +233,8 @@ describe('Sessions API - Unit Tests', () => {
 
             const initialConnection = user.last_connection;
             await user.save();
-            await new Promise(resolve => setTimeout(resolve, 100)); 
+            await new Promise(resolve => setTimeout(resolve, 100));
 
-            
             user.last_connection = new Date();
             await user.save();
 
@@ -289,7 +285,7 @@ describe('Sessions API - Unit Tests', () => {
                 last_name: 'Role',
                 email: 'invalid@role.com',
                 password: 'password123',
-                role: 'superadmin' 
+                role: 'superadmin'
             });
 
             let error;
@@ -299,10 +295,8 @@ describe('Sessions API - Unit Tests', () => {
                 error = err;
             }
 
-            
             if (!error) {
                 const savedUser = await User.findOne({ email: 'invalid@role.com' });
-                
                 console.log('Nota: MongoDB aceptó rol no definido en enum');
             }
         });

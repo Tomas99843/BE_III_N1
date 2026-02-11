@@ -3,6 +3,16 @@ import logger from '../utils/logger.js';
 
 export default class Users {
     
+    // MÉTODO NUEVO: Para buscar por ID específicamente
+    getById = async (id) => {
+        try {
+            return await userModel.findById(id);
+        } catch (error) {
+            logger.error(`Error en Users.getById: ${error.message}`, error);
+            throw error;
+        }
+    }
+
     get = async (params, options = {}) => {
         try {
             const query = userModel.find(params);
@@ -14,7 +24,6 @@ export default class Users {
                 const skip = (page - 1) * limit;
                 
                 query.skip(skip).limit(limit);
-                
                 
                 const total = await userModel.countDocuments(params);
                 const results = await query.exec();
@@ -74,7 +83,6 @@ export default class Users {
             throw error;
         }
     }
-
     
     updateLastConnection = async (id) => {
         try {
@@ -88,7 +96,6 @@ export default class Users {
             throw error;
         }
     }
-
     
     getUsersWithMissingDocuments = async () => {
         try {
@@ -109,7 +116,6 @@ export default class Users {
             throw error;
         }
     }
-
     
     addDocument = async (userId, document) => {
         try {
@@ -123,7 +129,6 @@ export default class Users {
             throw error;
         }
     }
-
     
     updateLoginAttempts = async (userId, attempts, lockUntil = null) => {
         try {

@@ -9,7 +9,8 @@ export default class Adoption {
                 .populate('owner', 'first_name last_name email')
                 .populate('pet', 'name specie breed image');
             
-            if (options.page && options.limit) {
+            // SIEMPRE devolver la misma estructura
+            if (options.page || options.limit) {
                 const page = parseInt(options.page, 10) || 1;
                 const limit = parseInt(options.limit, 10) || 10;
                 const skip = (page - 1) * limit;
@@ -20,17 +21,33 @@ export default class Adoption {
                 const results = await query.exec();
                 
                 return {
-                    results,
+                    results,  // ← Array de resultados
                     pagination: {
                         total,
                         page,
                         limit,
-                        pages: Math.ceil(total / limit)
+                        pages: Math.ceil(total / limit),
+                        hasNextPage: page * limit < total,
+                        hasPrevPage: page > 1
                     }
                 };
             }
             
-            return await query.exec();
+            // SI NO HAY PAGINACIÓN: ¡DEVOLVER MISMA ESTRUCTURA!
+            const results = await query.exec();
+            const total = results.length;
+            
+            return {
+                results,  // ← Siempre devolver results como array
+                pagination: {
+                    total,
+                    page: 1,
+                    limit: total,
+                    pages: 1,
+                    hasNextPage: false,
+                    hasPrevPage: false
+                }
+            };
         } catch (error) {
             logger.error(`Error en Adoption.get: ${error.message}`, error);
             throw error;
@@ -74,19 +91,29 @@ export default class Adoption {
             throw error;
         }
     }
-
     
     getAdoptionsByUser = async (userId) => {
         try {
-            return await adoptionModel.find({ owner: userId })
+            const results = await adoptionModel.find({ owner: userId })
                 .populate('pet', 'name specie breed image status')
                 .sort({ adoptionDate: -1 });
+            
+            return {
+                results,
+                pagination: {
+                    total: results.length,
+                    page: 1,
+                    limit: results.length,
+                    pages: 1,
+                    hasNextPage: false,
+                    hasPrevPage: false
+                }
+            };
         } catch (error) {
             logger.error(`Error en getAdoptionsByUser: ${error.message}`, error);
             throw error;
         }
     }
-
     
     updateAdoptionStatus = async (id, status, notes = '') => {
         try {
@@ -105,7 +132,6 @@ export default class Adoption {
             throw error;
         }
     }
-
     
     isPetInAdoptionProcess = async (petId) => {
         try {
@@ -116,6 +142,16 @@ export default class Adoption {
             return !!adoption;
         } catch (error) {
             logger.error(`Error en isPetInAdoptionProcess: ${error.message}`, error);
+            throw error;
+        }
+    }
+
+    // Método nuevo: Contar documentos
+    count = async (params = {}) => {
+        try {
+            return await adoptionModel.countDocuments(params);
+        } catch (error) {
+            logger.error(`Error en Adoption.count: ${error.message}`, error);
             throw error;
         }
     }

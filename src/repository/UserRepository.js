@@ -11,7 +11,7 @@ export default class UserRepository {
     }
 
     get = async (id) => {
-        return await this.dao.get(id);
+        return await this.dao.getById(id); // CAMBIADO: usa getById en lugar de get
     }
 
     getBy = async (query) => {
@@ -23,11 +23,11 @@ export default class UserRepository {
     }
 
     getUserById = async (id) => {
-        return await this.dao.get(id);
+        return await this.dao.getById(id); // CAMBIADO CRÍTICO: usa getById
     }
 
     getAll = async (query = {}, options = {}) => {
-        return await this.dao.getAll(query, options);
+        return await this.dao.get(query, options);
     }
 
     update = async (id, user) => {
@@ -89,8 +89,8 @@ export default class UserRepository {
     getUsersPaginated = async (page = 1, limit = 10, query = {}) => {
         try {
             const skip = (page - 1) * limit;
-            const users = await this.dao.getAll(query, { skip, limit });
-            const total = await this.dao.count(query);
+            const users = await this.dao.get(query, { skip, limit });
+            const total = await userModel.countDocuments(query);
             
             return {
                 users,
@@ -135,7 +135,7 @@ export default class UserRepository {
                 role: { $ne: 'admin' } // No eliminar admins
             };
             
-            const result = await this.dao.deleteMany(query);
+            const result = await userModel.deleteMany(query);
             return result;
         } catch (error) {
             console.error('Error en deleteInactiveUsers:', error);
@@ -146,16 +146,16 @@ export default class UserRepository {
     // Método para obtener estadísticas de usuarios
     getUserStatistics = async () => {
         try {
-            const totalUsers = await this.dao.count({});
-            const activeUsers = await this.dao.count({
+            const totalUsers = await userModel.countDocuments({});
+            const activeUsers = await userModel.countDocuments({
                 last_connection: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
             });
             
-            const usersByRole = await this.dao.aggregate([
+            const usersByRole = await userModel.aggregate([
                 { $group: { _id: '$role', count: { $sum: 1 } } }
             ]);
             
-            const recentRegistrations = await this.dao.count({
+            const recentRegistrations = await userModel.countDocuments({
                 createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
             });
             

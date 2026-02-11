@@ -5,7 +5,7 @@ import sessionsController from '../controllers/sessions.controller.js';
 const { authenticate, authorize } = sessionsController;
 const router = Router();
 
-// Aplicar autenticación a todas las rutas de adopciones
+// CORREGIDO: Aplicar autenticación a TODAS las rutas de adopciones
 router.use(authenticate);
 
 /**
@@ -232,7 +232,7 @@ router.post('/user/:uid/pet/:pid', adoptionsController.createAdoption);
  *       403:
  *         description: No autorizado para ver estas adopciones
  *       404:
- *         description: Usuario no encontrado
+ *         description: Usuario no encontrada
  *       500:
  *         description: Error interno del servidor
  */

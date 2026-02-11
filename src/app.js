@@ -22,19 +22,13 @@ const app = express();
 
 const PORT = process.env.PORT || 8080;
 
-// CORREGIDO: Usa MONGODB_URL para Railway
-const MONGO_URI = process.env.MONGODB_URL || process.env.MONGO_URL || 'mongodb://localhost:27017/adoptme';
+// CORREGIDO: Compatibilidad con Railway (.env) y tu configuración
+const MONGO_URI = process.env.MONGODB_URI || process.env.MONGODB_URL || process.env.MONGO_URL || 'mongodb://localhost:27017/adoptme';
 
-// AÑADIDO: Debug para verificar variable
-logger.info('🔍 Verificando variables de entorno...');
-logger.info(`🔍 MONGODB_URL presente: ${process.env.MONGODB_URL ? 'SÍ' : 'NO'}`);
-logger.info(`🔍 MONGO_URL presente: ${process.env.MONGO_URL ? 'SÍ' : 'NO'}`);
-
-if (process.env.MONGODB_URL) {
-    // Mostrar solo los primeros 30 caracteres por seguridad
-    const maskedURL = process.env.MONGODB_URL.substring(0, 30) + '...';
-    logger.info(`🔍 MONGODB_URL inicia con: ${maskedURL}`);
-}
+// Debug mejorado
+logger.info('🔍 Verificando conexión a MongoDB...');
+logger.info(`🔍 Puerto: ${PORT}`);
+logger.info(`🔍 Entorno: ${process.env.NODE_ENV}`);
 
 // Configuración de seguridad
 app.use(helmet({
@@ -71,15 +65,16 @@ app.use('/api/', limiter);
 // AÑADIDO: CONEXIÓN CONDICIONAL - NO conectar en modo TEST
 if (process.env.NODE_ENV !== 'test') {
     logger.info('Conectando a MongoDB...');
-    logger.info(`URI de MongoDB configurada: ${MONGO_URI ? 'SÍ' : 'NO'}`);
-
-    // AÑADIDO: Mejor configuración de conexión para Railway con timeout más corto
+    
+    // AÑADIDO: Mejor configuración de conexión
     mongoose.connect(MONGO_URI, {
-        serverSelectionTimeoutMS: 5000, // REDUCIDO: 5 segundos timeout
-        connectTimeoutMS: 10000,
-        socketTimeoutMS: 30000,
+        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 15000,
+        socketTimeoutMS: 45000,
         retryWrites: true,
-        w: 'majority'
+        w: 'majority',
+        maxPoolSize: 10,
+        minPoolSize: 2
     })
     .then(() => {
         logger.info('✅ Conectado a MongoDB exitosamente');
@@ -89,14 +84,8 @@ if (process.env.NODE_ENV !== 'test') {
         logger.error(`❌ Error conectando a MongoDB: ${err.message}`);
         logger.warning('⚠️  El servidor continuará sin conexión a base de datos');
         
-        // Debug adicional
-        if (err.message.includes('ENOTFOUND')) {
-            logger.error('🔍 Error DNS - Revisa la URL de MongoDB');
-        } else if (err.message.includes('ECONNREFUSED')) {
-            logger.error('🔍 Conexión rechazada - ¿MongoDB está activo?');
-        } else if (err.message.includes('authentication')) {
-            logger.error('🔍 Error de autenticación - Revisa usuario/contraseña');
-        }
+        // Debug detallado
+        logger.error(`🔍 Detalles error: ${err.name} - ${err.code || 'Sin código'}`);
         
         // IMPORTANTE: No fallar la aplicación si MongoDB no está disponible
         // La aplicación puede funcionar en modo degradado

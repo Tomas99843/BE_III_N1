@@ -1,30 +1,43 @@
-# BE_III_N1 - AdoptMe API
+# 🐕 AdoptMe API - Backend III Proyecto Final
 
-## 🌐 Demo en Vivo
-**URL:** https://beiiin1-production.up.railway.app
+API REST para sistema de adopción de mascotas. Proyecto final de Backend III - Coderhouse.
 
-## 📚 Documentación de la API
-Disponible en: https://beiiin1-production.up.railway.app/api-docs
+## 📋 Características Principales
 
-## 🏥 Health Check
-Verifica el estado del servicio: https://beiiin1-production.up.railway.app/health
+- 🔐 **Autenticación segura** con JWT y cookies HTTP-only
+- 🐾 **Gestión completa** de mascotas, usuarios y adopciones
+- 👤 **Sistema de roles** (user, admin, premium) con permisos granularizados
+- 📄 **Subida de documentos** (identificación, domicilio, etc.)
+- 🧪 **Testing completo** con 41+ tests (unitarios y funcionales)
+- 📚 **Documentación Swagger** interactiva y actualizada
+- 🐳 **Contenedor Docker** optimizado para producción
+- 🚀 **Despliegue flexible** (local, Docker, cloud)
 
-## 🚀 Despliegue
-Este proyecto está desplegado usando [Railway.app](https://railway.app) con:
-- Node.js 18+
-- MongoDB Atlas
-- Docker containers
+## 🚀 Demo en Vivo
 
-## 📦 Variables de Entorno en Railway
-- `PORT`: Puerto asignado automáticamente
-- `MONGODB_URL`: URL de conexión a MongoDB (proporcionada por Railway)
-- `NODE_ENV`: production
+- **API:** `https://beiiin1-production.up.railway.app`
+- **Documentación:** `https://beiiin1-production.up.railway.app/api-docs`
+- **Health Check:** `https://beiiin1-production.up.railway.app/health`
 
-## 🔗 Repositorio
-[GitHub Repository](https://github.com/Tomas99843/BE_III_N1.git) <!-- Agrega tu link de GitHub aquí -->
+## 📊 Estado del Proyecto
 
-## ✅ Estado del Despliegue
-![Railway Deployment](https://railway.app/badge.svg)
+![Tests](https://img.shields.io/badge/tests-41_passing_✅-brightgreen)
+![Docker](https://img.shields.io/badge/docker-ready-blue)
+![Node](https://img.shields.io/badge/node-18.x-green)
+![Railway](https://img.shields.io/badge/deployed-railway.app-blue)
 
-## 👤 Autor
-TOMAS CASCONE
+## 🐳 Docker (Requisito de Entrega)
+
+### Imagen Oficial en DockerHub
+
+```bash
+# Descargar la última versión
+docker pull tomasc98/adoptme-api:latest
+
+# Ejecutar contenedor con variables de entorno
+docker run -d \
+  --name adoptme-api \
+  -p 8080:8080 \
+  -e MONGODB_URI=tu_cadena_conexion_mongodb \
+  -e NODE_ENV=production \
+  tomasc98/adoptme-api:latest
