@@ -25,18 +25,7 @@
     "docker:run": "docker run -p 8080:8080 adoptme-api",
     "docker:test": "docker build -t adoptme-api-test . && docker run --rm adoptme-api-test npm test"
   },
-  "keywords": [
-    "adopciones",
-    "mascotas",
-    "api",
-    "backend",
-    "coderhouse",
-    "security",
-    "testing",
-    "docker",
-    "swagger",
-    "jwt"
-  ],
+  "keywords": ["adopciones", "mascotas", "api", "backend", "coderhouse", "security", "testing", "docker", "swagger", "jwt"],
   "author": "Tu Nombre",
   "license": "ISC",
   "dependencies": {

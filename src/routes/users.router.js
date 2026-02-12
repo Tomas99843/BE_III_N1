@@ -6,7 +6,6 @@ import { authenticate, authorize } from './sessions.router.js';
 
 const router = Router();
 
-// Aplicar autenticación a todas las rutas de users
 router.use(authenticate);
 
 /**
@@ -15,36 +14,16 @@ router.use(authenticate);
  *   get:
  *     summary: Obtener todos los usuarios (Solo admin)
  *     tags: [Users]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: Número de página
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *         description: Límite de resultados por página
- *       - in: query
- *         name: role
- *         schema:
- *           type: string
- *           enum: [user, admin, premium]
- *         description: Filtrar por rol
+ *       - in: query, name: page, schema: { type: integer, default: 1 }, description: Número de página
+ *       - in: query, name: limit, schema: { type: integer, default: 10 }, description: Límite de resultados por página
+ *       - in: query, name: role, schema: { type: string, enum: [user, admin, premium] }, description: Filtrar por rol
  *     responses:
- *       200:
- *         description: Lista de usuarios obtenida exitosamente
- *       401:
- *         description: No autenticado
- *       403:
- *         description: No autorizado (solo admin)
- *       500:
- *         description: Error interno del servidor
+ *       200: { description: Lista de usuarios obtenida exitosamente }
+ *       401: { description: No autenticado }
+ *       403: { description: No autorizado (solo admin) }
+ *       500: { description: Error interno del servidor }
  */
 router.get('/', authorize('admin'), usersController.getAllUsers);
 
@@ -54,28 +33,16 @@ router.get('/', authorize('admin'), usersController.getAllUsers);
  *   get:
  *     summary: Obtener un usuario por ID
  *     tags: [Users]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: path
- *         name: uid
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del usuario
+ *       - in: path, name: uid, required: true, schema: { type: string }, description: ID del usuario
  *     responses:
- *       200:
- *         description: Usuario obtenido exitosamente
- *       400:
- *         description: ID inválido
- *       401:
- *         description: No autenticado
- *       403:
- *         description: No autorizado para ver este usuario
- *       404:
- *         description: Usuario no encontrado
- *       500:
- *         description: Error interno del servidor
+ *       200: { description: Usuario obtenido exitosamente }
+ *       400: { description: ID inválido }
+ *       401: { description: No autenticado }
+ *       403: { description: No autorizado para ver este usuario }
+ *       404: { description: Usuario no encontrado }
+ *       500: { description: Error interno del servidor }
  */
 router.get('/:uid', usersController.getUser);
 
@@ -85,15 +52,9 @@ router.get('/:uid', usersController.getUser);
  *   put:
  *     summary: Actualizar un usuario
  *     tags: [Users]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: path
- *         name: uid
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del usuario
+ *       - in: path, name: uid, required: true, schema: { type: string }, description: ID del usuario
  *     requestBody:
  *       required: true
  *       content:
@@ -101,30 +62,18 @@ router.get('/:uid', usersController.getUser);
  *           schema:
  *             type: object
  *             properties:
- *               first_name:
- *                 type: string
- *               last_name:
- *                 type: string
- *               email:
- *                 type: string
- *               role:
- *                 type: string
- *                 enum: [user, admin, premium]
+ *               first_name: { type: string }
+ *               last_name: { type: string }
+ *               email: { type: string }
+ *               role: { type: string, enum: [user, admin, premium] }
  *     responses:
- *       200:
- *         description: Usuario actualizado exitosamente
- *       400:
- *         description: Datos inválidos
- *       401:
- *         description: No autenticado
- *       403:
- *         description: No autorizado para actualizar este usuario
- *       404:
- *         description: Usuario no encontrado
- *       409:
- *         description: Email ya en uso
- *       500:
- *         description: Error interno del servidor
+ *       200: { description: Usuario actualizado exitosamente }
+ *       400: { description: Datos inválidos }
+ *       401: { description: No autenticado }
+ *       403: { description: No autorizado para actualizar este usuario }
+ *       404: { description: Usuario no encontrado }
+ *       409: { description: Email ya en uso }
+ *       500: { description: Error interno del servidor }
  */
 router.put('/:uid', usersController.updateUser);
 
@@ -134,28 +83,16 @@ router.put('/:uid', usersController.updateUser);
  *   delete:
  *     summary: Eliminar un usuario
  *     tags: [Users]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: path
- *         name: uid
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del usuario
+ *       - in: path, name: uid, required: true, schema: { type: string }, description: ID del usuario
  *     responses:
- *       200:
- *         description: Usuario eliminado exitosamente
- *       400:
- *         description: ID inválido
- *       401:
- *         description: No autenticado
- *       403:
- *         description: No autorizado para eliminar este usuario
- *       404:
- *         description: Usuario no encontrado
- *       500:
- *         description: Error interno del servidor
+ *       200: { description: Usuario eliminado exitosamente }
+ *       400: { description: ID inválido }
+ *       401: { description: No autenticado }
+ *       403: { description: No autorizado para eliminar este usuario }
+ *       404: { description: Usuario no encontrado }
+ *       500: { description: Error interno del servidor }
  */
 router.delete('/:uid', usersController.deleteUser);
 
@@ -166,15 +103,9 @@ router.delete('/:uid', usersController.deleteUser);
  *     summary: Subir documentos para un usuario
  *     description: Sube uno o múltiples documentos para un usuario específico. Máximo 10 archivos, 5MB cada uno.
  *     tags: [Users]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: path
- *         name: uid
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del usuario
+ *       - in: path, name: uid, required: true, schema: { type: string }, description: ID del usuario
  *     requestBody:
  *       required: true
  *       content:
@@ -184,30 +115,18 @@ router.delete('/:uid', usersController.deleteUser);
  *             properties:
  *               documents:
  *                 type: array
- *                 items:
- *                   type: string
- *                   format: binary
+ *                 items: { type: string, format: binary }
  *                 description: Archivos a subir (imágenes, PDFs, documentos)
  *     responses:
- *       201:
- *         description: Documentos subidos exitosamente
- *       400:
- *         description: Error en la solicitud
- *       401:
- *         description: No autenticado
- *       403:
- *         description: No autorizado para subir documentos
- *       404:
- *         description: Usuario no encontrado
- *       413:
- *         description: Archivo demasiado grande
- *       500:
- *         description: Error interno del servidor
+ *       201: { description: Documentos subidos exitosamente }
+ *       400: { description: Error en la solicitud }
+ *       401: { description: No autenticado }
+ *       403: { description: No autorizado para subir documentos }
+ *       404: { description: Usuario no encontrado }
+ *       413: { description: Archivo demasiado grande }
+ *       500: { description: Error interno del servidor }
  */
-router.post('/:uid/documents', 
-    uploaders.multipleDocuments,
-    documentsController.uploadDocuments
-);
+router.post('/:uid/documents', uploaders.multipleDocuments, documentsController.uploadDocuments);
 
 /**
  * @swagger
@@ -215,28 +134,16 @@ router.post('/:uid/documents',
  *   get:
  *     summary: Obtener documentos de un usuario
  *     tags: [Users]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: path
- *         name: uid
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del usuario
+ *       - in: path, name: uid, required: true, schema: { type: string }, description: ID del usuario
  *     responses:
- *       200:
- *         description: Documentos obtenidos exitosamente
- *       400:
- *         description: ID inválido
- *       401:
- *         description: No autenticado
- *       403:
- *         description: No autorizado para ver documentos
- *       404:
- *         description: Usuario no encontrado
- *       500:
- *         description: Error interno del servidor
+ *       200: { description: Documentos obtenidos exitosamente }
+ *       400: { description: ID inválido }
+ *       401: { description: No autenticado }
+ *       403: { description: No autorizado para ver documentos }
+ *       404: { description: Usuario no encontrado }
+ *       500: { description: Error interno del servidor }
  */
 router.get('/:uid/documents', usersController.getUserDocuments);
 
@@ -246,34 +153,17 @@ router.get('/:uid/documents', usersController.getUserDocuments);
  *   get:
  *     summary: Obtener un documento específico
  *     tags: [Users]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: path
- *         name: uid
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del usuario
- *       - in: path
- *         name: did
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del documento
+ *       - in: path, name: uid, required: true, schema: { type: string }, description: ID del usuario
+ *       - in: path, name: did, required: true, schema: { type: string }, description: ID del documento
  *     responses:
- *       200:
- *         description: Documento obtenido exitosamente
- *       400:
- *         description: IDs inválidos
- *       401:
- *         description: No autenticado
- *       403:
- *         description: No autorizado
- *       404:
- *         description: Usuario o documento no encontrado
- *       500:
- *         description: Error interno del servidor
+ *       200: { description: Documento obtenido exitosamente }
+ *       400: { description: IDs inválidos }
+ *       401: { description: No autenticado }
+ *       403: { description: No autorizado }
+ *       404: { description: Usuario o documento no encontrado }
+ *       500: { description: Error interno del servidor }
  */
 router.get('/:uid/documents/:did', documentsController.getDocumentById);
 
@@ -283,34 +173,17 @@ router.get('/:uid/documents/:did', documentsController.getDocumentById);
  *   delete:
  *     summary: Eliminar un documento específico
  *     tags: [Users]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: path
- *         name: uid
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del usuario
- *       - in: path
- *         name: did
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del documento
+ *       - in: path, name: uid, required: true, schema: { type: string }, description: ID del usuario
+ *       - in: path, name: did, required: true, schema: { type: string }, description: ID del documento
  *     responses:
- *       200:
- *         description: Documento eliminado exitosamente
- *       400:
- *         description: IDs inválidos
- *       401:
- *         description: No autenticado
- *       403:
- *         description: No autorizado
- *       404:
- *         description: Usuario o documento no encontrado
- *       500:
- *         description: Error interno del servidor
+ *       200: { description: Documento eliminado exitosamente }
+ *       400: { description: IDs inválidos }
+ *       401: { description: No autenticado }
+ *       403: { description: No autorizado }
+ *       404: { description: Usuario o documento no encontrado }
+ *       500: { description: Error interno del servidor }
  */
 router.delete('/:uid/documents/:did', documentsController.deleteDocument);
 
@@ -320,28 +193,16 @@ router.delete('/:uid/documents/:did', documentsController.deleteDocument);
  *   get:
  *     summary: Verificar documentos requeridos
  *     tags: [Users]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: path
- *         name: uid
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del usuario
+ *       - in: path, name: uid, required: true, schema: { type: string }, description: ID del usuario
  *     responses:
- *       200:
- *         description: Estado de documentos verificado
- *       400:
- *         description: ID inválido
- *       401:
- *         description: No autenticado
- *       403:
- *         description: No autorizado
- *       404:
- *         description: Usuario no encontrado
- *       500:
- *         description: Error interno del servidor
+ *       200: { description: Estado de documentos verificado }
+ *       400: { description: ID inválido }
+ *       401: { description: No autenticado }
+ *       403: { description: No autorizado }
+ *       404: { description: Usuario no encontrado }
+ *       500: { description: Error interno del servidor }
  */
 router.get('/:uid/documents/check', documentsController.checkRequiredDocuments);
 

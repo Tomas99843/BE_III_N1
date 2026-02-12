@@ -2,14 +2,12 @@ import adoptionModel from "./models/Adoption.js";
 import logger from '../utils/logger.js';
 
 export default class Adoption {
-
     get = async (params, options = {}) => {
         try {
             const query = adoptionModel.find(params)
                 .populate('owner', 'first_name last_name email')
                 .populate('pet', 'name specie breed image');
             
-            // SIEMPRE devolver la misma estructura
             if (options.page || options.limit) {
                 const page = parseInt(options.page, 10) || 1;
                 const limit = parseInt(options.limit, 10) || 10;
@@ -17,37 +15,16 @@ export default class Adoption {
                 
                 query.skip(skip).limit(limit);
                 
-                const total = await adoptionModel.countDocuments(params);
-                const results = await query.exec();
+                const [results, total] = await Promise.all([query.exec(), adoptionModel.countDocuments(params)]);
                 
                 return {
-                    results,  // ← Array de resultados
-                    pagination: {
-                        total,
-                        page,
-                        limit,
-                        pages: Math.ceil(total / limit),
-                        hasNextPage: page * limit < total,
-                        hasPrevPage: page > 1
-                    }
+                    results,
+                    pagination: { total, page, limit, pages: Math.ceil(total / limit), hasNextPage: page * limit < total, hasPrevPage: page > 1 }
                 };
             }
             
-            // SI NO HAY PAGINACIÓN: ¡DEVOLVER MISMA ESTRUCTURA!
             const results = await query.exec();
-            const total = results.length;
-            
-            return {
-                results,  // ← Siempre devolver results como array
-                pagination: {
-                    total,
-                    page: 1,
-                    limit: total,
-                    pages: 1,
-                    hasNextPage: false,
-                    hasPrevPage: false
-                }
-            };
+            return { results, pagination: { total: results.length, page: 1, limit: results.length, pages: 1, hasNextPage: false, hasPrevPage: false } };
         } catch (error) {
             logger.error(`Error en Adoption.get: ${error.message}`, error);
             throw error;
@@ -98,17 +75,7 @@ export default class Adoption {
                 .populate('pet', 'name specie breed image status')
                 .sort({ adoptionDate: -1 });
             
-            return {
-                results,
-                pagination: {
-                    total: results.length,
-                    page: 1,
-                    limit: results.length,
-                    pages: 1,
-                    hasNextPage: false,
-                    hasPrevPage: false
-                }
-            };
+            return { results, pagination: { total: results.length, page: 1, limit: results.length, pages: 1, hasNextPage: false, hasPrevPage: false } };
         } catch (error) {
             logger.error(`Error en getAdoptionsByUser: ${error.message}`, error);
             throw error;
@@ -117,16 +84,7 @@ export default class Adoption {
     
     updateAdoptionStatus = async (id, status, notes = '') => {
         try {
-            return await adoptionModel.findByIdAndUpdate(
-                id,
-                { 
-                    $set: { 
-                        status,
-                        ...(notes && { notes })
-                    } 
-                },
-                { new: true }
-            );
+            return await adoptionModel.findByIdAndUpdate(id, { $set: { status, ...(notes && { notes }) } }, { new: true });
         } catch (error) {
             logger.error(`Error en updateAdoptionStatus: ${error.message}`, error);
             throw error;
@@ -135,10 +93,7 @@ export default class Adoption {
     
     isPetInAdoptionProcess = async (petId) => {
         try {
-            const adoption = await adoptionModel.findOne({
-                pet: petId,
-                status: { $in: ['pending', 'approved'] }
-            });
+            const adoption = await adoptionModel.findOne({ pet: petId, status: { $in: ['pending', 'approved'] } });
             return !!adoption;
         } catch (error) {
             logger.error(`Error en isPetInAdoptionProcess: ${error.message}`, error);
@@ -146,7 +101,6 @@ export default class Adoption {
         }
     }
 
-    // Método nuevo: Contar documentos
     count = async (params = {}) => {
         try {
             return await adoptionModel.countDocuments(params);

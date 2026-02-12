@@ -5,7 +5,6 @@ import sessionsController from '../controllers/sessions.controller.js';
 const { authenticate, authorize } = sessionsController;
 const router = Router();
 
-// CORREGIDO: Aplicar autenticación a TODAS las rutas de adopciones
 router.use(authenticate);
 
 /**
@@ -14,39 +13,16 @@ router.use(authenticate);
  *   get:
  *     summary: Obtener todas las adopciones
  *     tags: [Adoptions]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: Número de página
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
- *         description: Límite de resultados por página
- *       - in: query
- *         name: status
- *         schema:
- *           type: string
- *           enum: [pending, approved, rejected, completed]
- *         description: Filtrar por estado
- *       - in: query
- *         name: owner
- *         schema:
- *           type: string
- *         description: Filtrar por ID del dueño
+ *       - in: query, name: page, schema: { type: integer, default: 1 }, description: Número de página
+ *       - in: query, name: limit, schema: { type: integer, default: 10 }, description: Límite de resultados por página
+ *       - in: query, name: status, schema: { type: string, enum: [pending, approved, rejected, completed] }, description: Filtrar por estado
+ *       - in: query, name: owner, schema: { type: string }, description: Filtrar por ID del dueño
  *     responses:
- *       200:
- *         description: Lista de adopciones obtenida exitosamente
- *       401:
- *         description: No autenticado
- *       500:
- *         description: Error interno del servidor
+ *       200: { description: Lista de adopciones obtenida exitosamente }
+ *       401: { description: No autenticado }
+ *       500: { description: Error interno del servidor }
  */
 router.get('/', adoptionsController.getAllAdoptions);
 
@@ -56,28 +32,16 @@ router.get('/', adoptionsController.getAllAdoptions);
  *   get:
  *     summary: Obtener una adopción por ID
  *     tags: [Adoptions]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: path
- *         name: aid
- *         required: true
- *         schema:
- *           type: string
- *         description: ID de la adopción
+ *       - in: path, name: aid, required: true, schema: { type: string }, description: ID de la adopción
  *     responses:
- *       200:
- *         description: Adopción obtenida exitosamente
- *       400:
- *         description: ID inválido
- *       401:
- *         description: No autenticado
- *       403:
- *         description: No autorizado para ver esta adopción
- *       404:
- *         description: Adopción no encontrada
- *       500:
- *         description: Error interno del servidor
+ *       200: { description: Adopción obtenida exitosamente }
+ *       400: { description: ID inválido }
+ *       401: { description: No autenticado }
+ *       403: { description: No autorizado para ver esta adopción }
+ *       404: { description: Adopción no encontrada }
+ *       500: { description: Error interno del servidor }
  */
 router.get('/:aid', adoptionsController.getAdoption);
 
@@ -87,15 +51,9 @@ router.get('/:aid', adoptionsController.getAdoption);
  *   put:
  *     summary: Actualizar una adopción (solo admin o dueño)
  *     tags: [Adoptions]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: path
- *         name: aid
- *         required: true
- *         schema:
- *           type: string
- *         description: ID de la adopción
+ *       - in: path, name: aid, required: true, schema: { type: string }, description: ID de la adopción
  *     requestBody:
  *       required: true
  *       content:
@@ -103,26 +61,16 @@ router.get('/:aid', adoptionsController.getAdoption);
  *           schema:
  *             type: object
  *             properties:
- *               status:
- *                 type: string
- *                 enum: [pending, approved, rejected, completed]
- *               notes:
- *                 type: string
- *               adoptionFee:
- *                 type: number
+ *               status: { type: string, enum: [pending, approved, rejected, completed] }
+ *               notes: { type: string }
+ *               adoptionFee: { type: number }
  *     responses:
- *       200:
- *         description: Adopción actualizada exitosamente
- *       400:
- *         description: Datos inválidos
- *       401:
- *         description: No autenticado
- *       403:
- *         description: No autorizado para actualizar esta adopción
- *       404:
- *         description: Adopción no encontrada
- *       500:
- *         description: Error interno del servidor
+ *       200: { description: Adopción actualizada exitosamente }
+ *       400: { description: Datos inválidos }
+ *       401: { description: No autenticado }
+ *       403: { description: No autorizado para actualizar esta adopción }
+ *       404: { description: Adopción no encontrada }
+ *       500: { description: Error interno del servidor }
  */
 router.put('/:aid', adoptionsController.updateAdoption);
 
@@ -132,28 +80,16 @@ router.put('/:aid', adoptionsController.updateAdoption);
  *   delete:
  *     summary: Eliminar una adopción (solo admin)
  *     tags: [Adoptions]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: path
- *         name: aid
- *         required: true
- *         schema:
- *           type: string
- *         description: ID de la adopción
+ *       - in: path, name: aid, required: true, schema: { type: string }, description: ID de la adopción
  *     responses:
- *       200:
- *         description: Adopción eliminada exitosamente
- *       400:
- *         description: ID inválido
- *       401:
- *         description: No autenticado
- *       403:
- *         description: Solo administradores pueden eliminar adopciones
- *       404:
- *         description: Adopción no encontrada
- *       500:
- *         description: Error interno del servidor
+ *       200: { description: Adopción eliminada exitosamente }
+ *       400: { description: ID inválido }
+ *       401: { description: No autenticado }
+ *       403: { description: Solo administradores pueden eliminar adopciones }
+ *       404: { description: Adopción no encontrada }
+ *       500: { description: Error interno del servidor }
  */
 router.delete('/:aid', authorize('admin'), adoptionsController.deleteAdoption);
 
@@ -163,21 +99,10 @@ router.delete('/:aid', authorize('admin'), adoptionsController.deleteAdoption);
  *   post:
  *     summary: Crear una nueva adopción
  *     tags: [Adoptions]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: path
- *         name: uid
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del usuario adoptante
- *       - in: path
- *         name: pid
- *         required: true
- *         schema:
- *           type: string
- *         description: ID de la mascota
+ *       - in: path, name: uid, required: true, schema: { type: string }, description: ID del usuario adoptante
+ *       - in: path, name: pid, required: true, schema: { type: string }, description: ID de la mascota
  *     requestBody:
  *       required: false
  *       content:
@@ -185,25 +110,16 @@ router.delete('/:aid', authorize('admin'), adoptionsController.deleteAdoption);
  *           schema:
  *             type: object
  *             properties:
- *               notes:
- *                 type: string
- *               adoptionFee:
- *                 type: number
+ *               notes: { type: string }
+ *               adoptionFee: { type: number }
  *     responses:
- *       201:
- *         description: Adopción creada exitosamente
- *       400:
- *         description: Datos inválidos o mascota ya adoptada
- *       401:
- *         description: No autenticado
- *       403:
- *         description: No autorizado para crear adopción
- *       404:
- *         description: Usuario o mascota no encontrada
- *       409:
- *         description: La mascota ya está adoptada
- *       500:
- *         description: Error interno del servidor
+ *       201: { description: Adopción creada exitosamente }
+ *       400: { description: Datos inválidos o mascota ya adoptada }
+ *       401: { description: No autenticado }
+ *       403: { description: No autorizado para crear adopción }
+ *       404: { description: Usuario o mascota no encontrada }
+ *       409: { description: La mascota ya está adoptada }
+ *       500: { description: Error interno del servidor }
  */
 router.post('/user/:uid/pet/:pid', adoptionsController.createAdoption);
 
@@ -213,28 +129,16 @@ router.post('/user/:uid/pet/:pid', adoptionsController.createAdoption);
  *   get:
  *     summary: Obtener adopciones de un usuario
  *     tags: [Adoptions]
- *     security:
- *       - cookieAuth: []
+ *     security: [{ cookieAuth: [] }]
  *     parameters:
- *       - in: path
- *         name: uid
- *         required: true
- *         schema:
- *           type: string
- *         description: ID del usuario
+ *       - in: path, name: uid, required: true, schema: { type: string }, description: ID del usuario
  *     responses:
- *       200:
- *         description: Adopciones del usuario obtenidas exitosamente
- *       400:
- *         description: ID inválido
- *       401:
- *         description: No autenticado
- *       403:
- *         description: No autorizado para ver estas adopciones
- *       404:
- *         description: Usuario no encontrada
- *       500:
- *         description: Error interno del servidor
+ *       200: { description: Adopciones del usuario obtenidas exitosamente }
+ *       400: { description: ID inválido }
+ *       401: { description: No autenticado }
+ *       403: { description: No autorizado para ver estas adopciones }
+ *       404: { description: Usuario no encontrada }
+ *       500: { description: Error interno del servidor }
  */
 router.get('/user/:uid', adoptionsController.getUserAdoptions);
 

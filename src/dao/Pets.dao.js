@@ -2,11 +2,9 @@ import petModel from "./models/Pet.js";
 import logger from '../utils/logger.js';
 
 export default class Pets {
-
     get = async (params, options = {}) => {
         try {
-            const query = petModel.find(params)
-                .populate('owner', 'first_name last_name email');
+            const query = petModel.find(params).populate('owner', 'first_name last_name email');
             
             if (options.page && options.limit) {
                 const page = parseInt(options.page, 10) || 1;
@@ -15,18 +13,9 @@ export default class Pets {
                 
                 query.skip(skip).limit(limit);
                 
-                const total = await petModel.countDocuments(params);
-                const results = await query.exec();
+                const [results, total] = await Promise.all([query.exec(), petModel.countDocuments(params)]);
                 
-                return {
-                    results,
-                    pagination: {
-                        total,
-                        page,
-                        limit,
-                        pages: Math.ceil(total / limit)
-                    }
-                };
+                return { results, pagination: { total, page, limit, pages: Math.ceil(total / limit) } };
             }
             
             return await query.exec();
@@ -38,8 +27,7 @@ export default class Pets {
 
     getBy = async (params) => {
         try {
-            return await petModel.findOne(params)
-                .populate('owner', 'first_name last_name email');
+            return await petModel.findOne(params).populate('owner', 'first_name last_name email');
         } catch (error) {
             logger.error(`Error en Pets.getBy: ${error.message}`, error);
             throw error;
@@ -73,29 +61,19 @@ export default class Pets {
         }
     }
 
-    
     getAvailablePets = async (filters = {}) => {
         try {
-            const query = { 
-                adopted: false,
-                status: 'available',
-                ...filters
-            };
-            return await petModel.find(query)
-                .populate('owner', 'first_name last_name email');
+            const query = { adopted: false, status: 'available', ...filters };
+            return await petModel.find(query).populate('owner', 'first_name last_name email');
         } catch (error) {
             logger.error(`Error en getAvailablePets: ${error.message}`, error);
             throw error;
         }
     }
 
-    
     getPetsByLocation = async (location) => {
         try {
-            return await petModel.find({
-                'location.city': new RegExp(location, 'i'),
-                adopted: false
-            });
+            return await petModel.find({ 'location.city': new RegExp(location, 'i'), adopted: false });
         } catch (error) {
             logger.error(`Error en getPetsByLocation: ${error.message}`, error);
             throw error;

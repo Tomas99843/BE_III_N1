@@ -6,18 +6,15 @@ export default class AdoptionRepository extends GenericRepository {
         super(dao);
     }
     
-    // Método específico: Obtener adopciones por usuario
     getAdoptionsByUser = async (userId, page = 1, limit = 10) => {
         try {
-            const query = { owner: userId };
-            return await this.getAll(query, { page, limit });
+            return await this.getAll({ owner: userId }, { page, limit });
         } catch (error) {
             logger.error(`Error en AdoptionRepository.getAdoptionsByUser: ${error.message}`, error);
             throw error;
         }
     }
     
-    // Método específico: Obtener adopciones por mascota
     getAdoptionsByPet = async (petId) => {
         try {
             return await this.getAll({ pet: petId });
@@ -27,25 +24,19 @@ export default class AdoptionRepository extends GenericRepository {
         }
     }
     
-    // Método específico: Obtener adopciones por estado
     getAdoptionsByStatus = async (status, page = 1, limit = 10) => {
         try {
-            const query = { status: status };
-            return await this.getAll(query, { page, limit });
+            return await this.getAll({ status }, { page, limit });
         } catch (error) {
             logger.error(`Error en AdoptionRepository.getAdoptionsByStatus: ${error.message}`, error);
             throw error;
         }
     }
     
-    // Método específico: Cambiar estado de adopción
     updateAdoptionStatus = async (adoptionId, status, notes = '') => {
         try {
             const updateData = { status };
-            if (notes) {
-                updateData.notes = notes;
-            }
-            
+            if (notes) updateData.notes = notes;
             return await this.update(adoptionId, updateData);
         } catch (error) {
             logger.error(`Error en AdoptionRepository.updateAdoptionStatus: ${error.message}`, error);
@@ -53,7 +44,6 @@ export default class AdoptionRepository extends GenericRepository {
         }
     }
     
-    // Método específico: Aprobar adopción
     approveAdoption = async (adoptionId, notes = '') => {
         try {
             return await this.updateAdoptionStatus(adoptionId, 'approved', notes);
@@ -63,7 +53,6 @@ export default class AdoptionRepository extends GenericRepository {
         }
     }
     
-    // Método específico: Rechazar adopción
     rejectAdoption = async (adoptionId, notes = '') => {
         try {
             return await this.updateAdoptionStatus(adoptionId, 'rejected', notes);
@@ -73,7 +62,6 @@ export default class AdoptionRepository extends GenericRepository {
         }
     }
     
-    // Método específico: Completar adopción
     completeAdoption = async (adoptionId, notes = '') => {
         try {
             return await this.updateAdoptionStatus(adoptionId, 'completed', notes);
@@ -83,13 +71,9 @@ export default class AdoptionRepository extends GenericRepository {
         }
     }
     
-    // Método específico: Verificar si mascota ya está en proceso de adopción
     isPetInAdoptionProcess = async (petId) => {
         try {
-            const adoption = await this.getBy({ 
-                pet: petId, 
-                status: { $in: ['pending', 'approved'] } 
-            });
+            const adoption = await this.getBy({ pet: petId, status: { $in: ['pending', 'approved'] } });
             return !!adoption;
         } catch (error) {
             logger.error(`Error en AdoptionRepository.isPetInAdoptionProcess: ${error.message}`, error);
@@ -97,7 +81,6 @@ export default class AdoptionRepository extends GenericRepository {
         }
     }
     
-    // Método específico: Obtener adopciones pendientes
     getPendingAdoptions = async (page = 1, limit = 10) => {
         try {
             return await this.getAdoptionsByStatus('pending', page, limit);
@@ -107,59 +90,42 @@ export default class AdoptionRepository extends GenericRepository {
         }
     }
     
-    // Método específico: Crear solicitud de adopción
     createAdoptionRequest = async (userId, petId, notes = '') => {
         try {
-            // Verificar que la mascota no esté ya en proceso
             const isInProcess = await this.isPetInAdoptionProcess(petId);
-            if (isInProcess) {
-                throw new Error('Esta mascota ya está en proceso de adopción');
-            }
+            if (isInProcess) throw new Error('Esta mascota ya está en proceso de adopción');
             
-            const adoptionData = {
-                owner: userId,
-                pet: petId,
-                status: 'pending',
-                ...(notes && { notes })
-            };
-            
-            return await this.create(adoptionData);
+            return await this.create({ owner: userId, pet: petId, status: 'pending', ...(notes && { notes }) });
         } catch (error) {
             logger.error(`Error en AdoptionRepository.createAdoptionRequest: ${error.message}`, error);
             throw error;
         }
     }
     
-    // Método específico: Obtener estadísticas de adopciones
     getAdoptionStatistics = async () => {
         try {
-            const stats = await this.dao.getAdoptionStatistics();
-            return stats;
+            return await this.dao.getAdoptionStatistics();
         } catch (error) {
             logger.error(`Error en AdoptionRepository.getAdoptionStatistics: ${error.message}`, error);
             throw error;
         }
     }
     
-    // Método específico: Obtener adopciones recientes
     getRecentAdoptions = async (days = 30, limit = 10) => {
         try {
             const date = new Date();
             date.setDate(date.getDate() - days);
             
-            const query = { 
-                createdAt: { $gte: date },
-                status: { $in: ['approved', 'completed'] }
-            };
-            
-            return await this.getAll(query, { limit });
+            return await this.getAll({ 
+                createdAt: { $gte: date }, 
+                status: { $in: ['approved', 'completed'] } 
+            }, { limit });
         } catch (error) {
             logger.error(`Error en AdoptionRepository.getRecentAdoptions: ${error.message}`, error);
             throw error;
         }
     }
     
-    // Método específico: Cancelar adopción
     cancelAdoption = async (adoptionId, notes = '') => {
         try {
             return await this.updateAdoptionStatus(adoptionId, 'cancelled', notes);
@@ -169,14 +135,9 @@ export default class AdoptionRepository extends GenericRepository {
         }
     }
     
-    // Método específico: Verificar si usuario ya tiene solicitud para mascota
     hasUserRequestedAdoption = async (userId, petId) => {
         try {
-            const adoption = await this.getBy({ 
-                owner: userId, 
-                pet: petId,
-                status: { $in: ['pending', 'approved'] }
-            });
+            const adoption = await this.getBy({ owner: userId, pet: petId, status: { $in: ['pending', 'approved'] } });
             return !!adoption;
         } catch (error) {
             logger.error(`Error in AdoptionRepository.hasUserRequestedAdoption: ${error.message}`, error);

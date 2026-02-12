@@ -8,7 +8,6 @@ router.post('/login', sessionsController.login);
 router.get('/current', sessionsController.current);
 router.post('/logout', sessionsController.logout);
 
-// Exportar middlewares para usar en otras rutas
 export const authenticate = sessionsController.authenticate;
 export const authorize = sessionsController.authorize;
 

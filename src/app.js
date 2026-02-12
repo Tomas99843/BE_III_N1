@@ -19,18 +19,13 @@ import mocksRouter from './routes/mocks.router.js';
 import errorHandler from './utils/errorHandler.js';
 
 const app = express();
-
 const PORT = process.env.PORT || 8080;
-
-// CORREGIDO: Compatibilidad con Railway (.env) y tu configuración
 const MONGO_URI = process.env.MONGODB_URI || process.env.MONGODB_URL || process.env.MONGO_URL || 'mongodb://localhost:27017/adoptme';
 
-// Debug mejorado
 logger.info('🔍 Verificando conexión a MongoDB...');
 logger.info(`🔍 Puerto: ${PORT}`);
 logger.info(`🔍 Entorno: ${process.env.NODE_ENV}`);
 
-// Configuración de seguridad
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -40,33 +35,22 @@ app.use(helmet({
             imgSrc: ["'self'", "data:", "https:"]
         }
     },
-    hsts: {
-        maxAge: 31536000,
-        includeSubDomains: true,
-        preload: true
-    }
+    hsts: { maxAge: 31536000, includeSubDomains: true, preload: true }
 }));
 
-// Rate limiting
 const limiter = rateLimit({
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-    message: {
-        status: 'error',
-        error: 'Demasiadas peticiones desde esta IP. Intenta de nuevo en 15 minutos.'
-    },
+    message: { status: 'error', error: 'Demasiadas peticiones desde esta IP. Intenta de nuevo en 15 minutos.' },
     standardHeaders: true,
     legacyHeaders: false
 });
 
-// Aplicar rate limiting a todas las rutas de API
 app.use('/api/', limiter);
 
-// AÑADIDO: CONEXIÓN CONDICIONAL - NO conectar en modo TEST
 if (process.env.NODE_ENV !== 'test') {
     logger.info('Conectando a MongoDB...');
     
-    // AÑADIDO: Mejor configuración de conexión
     mongoose.connect(MONGO_URI, {
         serverSelectionTimeoutMS: 10000,
         connectTimeoutMS: 15000,
@@ -83,12 +67,7 @@ if (process.env.NODE_ENV !== 'test') {
     .catch(err => {
         logger.error(`❌ Error conectando a MongoDB: ${err.message}`);
         logger.warning('⚠️  El servidor continuará sin conexión a base de datos');
-        
-        // Debug detallado
         logger.error(`🔍 Detalles error: ${err.name} - ${err.code || 'Sin código'}`);
-        
-        // IMPORTANTE: No fallar la aplicación si MongoDB no está disponible
-        // La aplicación puede funcionar en modo degradado
     });
 } else {
     logger.info('🟡 Modo TEST - Saltando conexión a MongoDB');
@@ -97,31 +76,23 @@ if (process.env.NODE_ENV !== 'test') {
 app.use(express.json());
 app.use(cookieParser(process.env.SESSION_SECRET));
 
-// Swagger UI - Documentación de la API
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
     explorer: true,
     customCss: '.swagger-ui .topbar { display: none }',
     customSiteTitle: 'AdoptMe API Documentation',
-    swaggerOptions: {
-        persistAuthorization: true,
-        displayRequestDuration: true
-    }
+    swaggerOptions: { persistAuthorization: true, displayRequestDuration: true }
 }));
 
-// Middleware de logging
 app.use(loggerMiddleware);
-
-// Rutas de la API
 app.use('/api/users', usersRouter);
 app.use('/api/pets', petsRouter);
 app.use('/api/adoptions', adoptionsRouter);
 app.use('/api/sessions', sessionsRouter);
 app.use('/api/mocks', mocksRouter);
 
-// Ruta de health check (para Docker y monitoreo) - SIEMPRE DEVUELVE 200
 app.get('/health', (req, res) => {
-    const healthStatus = {
-        status: 'OK', // SIEMPRE OK para Railway
+    res.status(200).json({
+        status: 'OK',
         timestamp: new Date().toISOString(),
         uptime: process.uptime(),
         database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
@@ -129,91 +100,46 @@ app.get('/health', (req, res) => {
         environment: process.env.NODE_ENV || 'development',
         port: PORT,
         mongoURLConfigured: !!MONGO_URI,
-        railway: process.env.RAILWAY_ENVIRONMENT ? true : false,
-        message: mongoose.connection.readyState === 1 ? 
-            'Full service operational' : 
-            'Service operational (database disconnected)',
-        details: {
-            app: 'running',
-            api: 'available',
-            docs: 'available at /api-docs',
-            database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-        }
-    };
-    
-    // SIEMPRE devuelve 200 - Railway necesita que pase el health check
-    res.status(200).json(healthStatus);
+        railway: !!process.env.RAILWAY_ENVIRONMENT,
+        message: mongoose.connection.readyState === 1 ? 'Full service operational' : 'Service operational (database disconnected)',
+        details: { app: 'running', api: 'available', docs: 'available at /api-docs', database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected' }
+    });
 });
 
-// Ruta de prueba de logs (solo en desarrollo)
 if (process.env.NODE_ENV === 'development') {
     app.get('/loggerTest', (req, res) => {
         const currentLogger = req.logger || logger;
-        
-        currentLogger.debug('Este es un mensaje DEBUG - solo en desarrollo');
-        currentLogger.http('Este es un mensaje HTTP - solo en desarrollo');
-        currentLogger.info('Este es un mensaje INFO - solo en desarrollo');
-        currentLogger.warning('Este es un mensaje WARNING - solo en desarrollo');
-        
-        // No loggear errores/fatales en test para no llenar logs
-        res.json({
-            status: 'success',
-            message: 'Logs de prueba generados (solo desarrollo). Revisa la consola.',
-            environment: process.env.NODE_ENV
-        });
+        currentLogger.debug('Mensaje DEBUG - solo en desarrollo');
+        currentLogger.http('Mensaje HTTP - solo en desarrollo');
+        currentLogger.info('Mensaje INFO - solo en desarrollo');
+        currentLogger.warning('Mensaje WARNING - solo en desarrollo');
+        res.json({ status: 'success', message: 'Logs de prueba generados', environment: process.env.NODE_ENV });
     });
 }
 
-// Redirección a la documentación
-app.get('/', (req, res) => {
-    res.redirect('/api-docs');
-});
-
-// Manejo de errores centralizado
+app.get('/', (req, res) => res.redirect('/api-docs'));
 app.use(errorHandler);
+app.use('*', (req, res) => res.status(404).json({ status: 'error', error: 'Ruta no encontrada', path: req.originalUrl, method: req.method }));
 
-// Ruta 404
-app.use('*', (req, res) => {
-    res.status(404).json({
-        status: 'error',
-        error: 'Ruta no encontrada',
-        path: req.originalUrl,
-        method: req.method
-    });
-});
-
-// AÑADIDO: Escuchar en 0.0.0.0 para Railway
 app.listen(PORT, '0.0.0.0', () => {
     logger.info(`🚀 Servidor escuchando en puerto ${PORT}`);
-    logger.info(`📚 Documentación disponible en: http://0.0.0.0:${PORT}/api-docs`);
+    logger.info(`📚 Documentación en: http://0.0.0.0:${PORT}/api-docs`);
     logger.info(`🏥 Health check en: http://0.0.0.0:${PORT}/health`);
     logger.info(`🔧 Entorno: ${process.env.NODE_ENV || 'development'}`);
     logger.info(`🔧 Railway: ${process.env.RAILWAY_ENVIRONMENT ? 'SÍ' : 'NO'}`);
-    
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development') 
         logger.info(`🔧 Logger test en: http://localhost:${PORT}/loggerTest`);
-    }
 });
 
-// Exportar la app para testing
 export default app;
 
-// Manejo de errores no capturados
 process.on('uncaughtException', (error) => {
     logger.fatal(`🚨 Excepción no capturada: ${error.message}`, error);
-    // En producción, podrías reiniciar el proceso aquí
-    if (process.env.NODE_ENV === 'production') {
-        process.exit(1);
-    }
+    if (process.env.NODE_ENV === 'production') process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
     logger.error(`⚠️ Promesa rechazada no manejada: ${reason}`);
-    // Loggear el error pero no cerrar la aplicación
-    if (process.env.NODE_ENV === 'production') {
-        logger.error('Promesa rechazada en producción:', {
-            reason: reason.toString(),
-            promise: promise.toString()
-        });
-    }
+    if (process.env.NODE_ENV === 'production') 
+        logger.error('Promesa rechazada en producción:', { reason: reason.toString(), promise: promise.toString() });
 });

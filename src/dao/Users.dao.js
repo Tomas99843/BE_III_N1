@@ -2,8 +2,6 @@ import userModel from "./models/User.js";
 import logger from '../utils/logger.js';
 
 export default class Users {
-    
-    // MÉTODO NUEVO: Para buscar por ID específicamente
     getById = async (id) => {
         try {
             return await userModel.findById(id);
@@ -17,7 +15,6 @@ export default class Users {
         try {
             const query = userModel.find(params);
             
-            // Aplicar paginación si se especifica
             if (options.page && options.limit) {
                 const page = parseInt(options.page, 10) || 1;
                 const limit = parseInt(options.limit, 10) || 10;
@@ -25,19 +22,11 @@ export default class Users {
                 
                 query.skip(skip).limit(limit);
                 
-                const total = await userModel.countDocuments(params);
-                const results = await query.exec();
+                const [results, total] = await Promise.all([query.exec(), userModel.countDocuments(params)]);
                 
                 return {
                     results,
-                    pagination: {
-                        total,
-                        page,
-                        limit,
-                        pages: Math.ceil(total / limit),
-                        hasNextPage: page * limit < total,
-                        hasPrevPage: page > 1
-                    }
+                    pagination: { total, page, limit, pages: Math.ceil(total / limit), hasNextPage: page * limit < total, hasPrevPage: page > 1 }
                 };
             }
             
@@ -86,11 +75,7 @@ export default class Users {
     
     updateLastConnection = async (id) => {
         try {
-            return await userModel.findByIdAndUpdate(
-                id, 
-                { $set: { last_connection: new Date() } }, 
-                { new: true }
-            );
+            return await userModel.findByIdAndUpdate(id, { $set: { last_connection: new Date() } }, { new: true });
         } catch (error) {
             logger.error(`Error en Users.updateLastConnection: ${error.message}`, error);
             throw error;
@@ -102,13 +87,7 @@ export default class Users {
             return await userModel.find({
                 $or: [
                     { 'documents': { $size: 0 } },
-                    { 
-                        'documents.name': { 
-                            $not: { 
-                                $in: ['identificacion', 'comprobante_domicilio'] 
-                            }
-                        }
-                    }
+                    { 'documents.name': { $not: { $in: ['identificacion', 'comprobante_domicilio'] } } }
                 ]
             });
         } catch (error) {
@@ -119,11 +98,7 @@ export default class Users {
     
     addDocument = async (userId, document) => {
         try {
-            return await userModel.findByIdAndUpdate(
-                userId,
-                { $push: { documents: document } },
-                { new: true }
-            );
+            return await userModel.findByIdAndUpdate(userId, { $push: { documents: document } }, { new: true });
         } catch (error) {
             logger.error(`Error en Users.addDocument: ${error.message}`, error);
             throw error;
@@ -133,11 +108,8 @@ export default class Users {
     updateLoginAttempts = async (userId, attempts, lockUntil = null) => {
         try {
             const update = { $set: { failedLoginAttempts: attempts } };
-            if (lockUntil) {
-                update.$set.lockUntil = lockUntil;
-            } else {
-                update.$unset = { lockUntil: 1 };
-            }
+            if (lockUntil) update.$set.lockUntil = lockUntil;
+            else update.$unset = { lockUntil: 1 };
             
             return await userModel.findByIdAndUpdate(userId, update, { new: true });
         } catch (error) {
